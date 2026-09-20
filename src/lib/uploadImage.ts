@@ -1,8 +1,8 @@
-// Upload foto ke ImgBB (https://api.imgbb.com) memakai API key.
-// API key disimpan di file .env.local dengan nama VITE_IMGBB_API_KEY
 const API_KEY = import.meta.env.VITE_IMGBB_API_KEY as string | undefined
 
-export const canUploadImage = Boolean(API_KEY)
+const UPLOAD_ENABLED: boolean = false
+
+export const canUploadImage = UPLOAD_ENABLED && Boolean(API_KEY)
 
 export async function uploadImage(file: File): Promise<string> {
   if (!API_KEY) {

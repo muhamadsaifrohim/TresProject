@@ -131,19 +131,28 @@ export default function Report() {
         </div>
 
         <div>
-          <label htmlFor="photo" className={labelClass}>Foto (opsional)</label>
-          <input
-            id="photo"
-            type="file"
-            accept="image/*"
-            disabled={!canUploadImage}
-            onChange={handlePhoto}
-            className="block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-white/15 disabled:opacity-50"
-          />
-          {!canUploadImage && (
-            <p className="mt-1.5 text-xs text-muted">
-              Upload foto belum aktif. Isi VITE_IMGBB_API_KEY di file .env.local, lalu jalankan ulang npm run dev.
-            </p>
+          {canUploadImage ? (
+            <>
+              <label htmlFor="photo" className={labelClass}>Foto (opsional)</label>
+              <input
+                id="photo"
+                type="file"
+                accept="image/*"
+                onChange={handlePhoto}
+                className="block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-white/15"
+              />
+            </>
+          ) : (
+            <>
+              <span className={labelClass}>Foto (opsional)</span>
+              <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-muted">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <rect x="4" y="11" width="16" height="10" rx="2" />
+                  <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
+                </svg>
+                <span>Upload foto dikunci untuk sementara dan akan aktif nanti.</span>
+              </div>
+            </>
           )}
         </div>
 
