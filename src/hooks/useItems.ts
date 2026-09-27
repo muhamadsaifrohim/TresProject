@@ -1,51 +1,44 @@
-import { useCallback, useState } from 'react'
-import { seedItems } from '../data/seedItems'
+import { useCallback, useEffect, useState } from 'react'
+import { api } from '../lib/api'
 import type { Item, NewItem } from '../Types'
 
-const STORAGE_KEY = 'lostnfound:items'
-
-// Baca data dari localStorage. Kalau belum ada / rusak, pakai data contoh.
-function readItems(): Item[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw === null) return seedItems
-
-    const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as Item[]) : seedItems
-  } catch {
-    return seedItems
-  }
-}
-
-// Simpan data ke localStorage (bentuknya harus string, jadi diubah pakai JSON.stringify)
-function writeItems(items: Item[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  } catch {
-    // penyimpanan penuh atau diblokir browser: abaikan
-  }
-}
-
 export function useItems() {
-  const [items, setItems] = useState<Item[]>(readItems)
+  const [items, setItems] = useState<Item[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  const addItem = useCallback((data: NewItem): Item => {
-    const item: Item = {
-      ...data,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: Date.now(),
+  const reload = useCallback(async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const data = await api.get<Item[]>('/items')
+      setItems(data)
+    } catch {
+      setError('Gagal memuat data. Coba muat ulang halaman.')
+    } finally {
+      setIsLoading(false)
     }
-    const next = [item, ...readItems()]
-    writeItems(next)
-    setItems(next)
+  }, [])
+
+  useEffect(() => {
+    reload()
+  }, [reload])
+
+  const addItem = useCallback(async (data: NewItem) => {
+    const item = await api.post<Item>('/items', data)
+    setItems((prev) => [item, ...prev])
     return item
   }, [])
 
-  const removeItem = useCallback((id: string) => {
-    const next = readItems().filter((item) => item.id !== id)
-    writeItems(next)
-    setItems(next)
+  const markResolved = useCallback(async (id: number) => {
+    const updated = await api.patch<Item>(`/items/${id}`)
+    setItems((prev) => prev.map((item) => (item.id === id ? updated : item)))
   }, [])
 
-  return { items, addItem, removeItem }
+  const removeItem = useCallback(async (id: number) => {
+    await api.delete(`/items/${id}`)
+    setItems((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
+  return { items, isLoading, error, addItem, markResolved, removeItem, reload }
 }

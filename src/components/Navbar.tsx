@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 const links = [
   { label: 'Home', to: '/' },
@@ -21,6 +22,8 @@ function LogoMark() {
 
 export default function Navbar() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   const wrapperRef = useRef<HTMLDivElement>(null)
   const pillRef = useRef<HTMLSpanElement>(null)
@@ -117,6 +120,32 @@ export default function Navbar() {
             </ul>
           </div>
         </nav>
+
+        {user ? (
+          <div className="flex items-center gap-3 text-sm">
+            <span className="text-white/70">
+              {user.name}
+              {user.role === 'admin' && <span className="ml-1.5 rounded bg-accent/20 px-1.5 py-0.5 text-xs font-semibold text-accent">Admin</span>}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                logout()
+                navigate('/')
+              }}
+              className="rounded-lg border border-white/15 px-3 py-1.5 font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Keluar
+            </button>
+          </div>
+        ) : (
+          <Link
+            to="/login"
+            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-ink transition-colors hover:bg-[#d3c078] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            Masuk
+          </Link>
+        )}
       </div>
     </header>
   )

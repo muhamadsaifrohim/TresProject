@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ApiError } from '../hooks/useAuth'
 import { useItems } from '../hooks/useItems'
-import { canUploadImage, uploadImage } from '../lib/uploadImage'
 import type { ItemStatus } from '../Types'
-
-const MAX_PHOTO_SIZE = 5 * 1024 * 1024 // 5 MB
 
 const inputClass =
   'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus-visible:outline-2 focus-visible:outline-accent [color-scheme:dark]'
@@ -15,7 +13,7 @@ export default function Report() {
   const navigate = useNavigate()
   const { addItem } = useItems()
 
-  const [status, setStatus] = useState<ItemStatus>('lost')
+  const [status, setStatus] = useState<Exclude<ItemStatus, 'selesai'>>('lost')
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -23,24 +21,11 @@ export default function Report() {
     date: new Date().toLocaleDateString('en-CA'), // tanggal hari ini (YYYY-MM-DD)
     contact: '',
   })
-  const [photo, setPhoto] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   function handleChange(e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-
-  function handlePhoto(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null
-    if (file && file.size > MAX_PHOTO_SIZE) {
-      setError('Ukuran foto maksimal 5 MB.')
-      e.target.value = ''
-      setPhoto(null)
-      return
-    }
-    setError('')
-    setPhoto(file)
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -49,24 +34,17 @@ export default function Report() {
     setError('')
 
     try {
-      // 1. Kalau ada foto, upload dulu ke API dan ambil link-nya
-      const imageUrl = photo ? await uploadImage(photo) : undefined
-
-      // 2. Simpan laporan ke localStorage
-      addItem({
+      await addItem({
         status,
         name: form.name.trim(),
         description: form.description.trim(),
         location: form.location.trim(),
         date: form.date,
         contact: form.contact.trim(),
-        imageUrl,
       })
-
-      // 3. Pindah ke halaman daftar yang sesuai
       navigate(status === 'lost' ? '/lost' : '/found')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Terjadi kesalahan, coba lagi.')
+      setError(err instanceof ApiError ? (err as ApiError).message : 'Terjadi kesalahan, coba lagi.')
       setSubmitting(false)
     }
   }
@@ -92,9 +70,7 @@ export default function Report() {
                 aria-pressed={status === value}
                 onClick={() => setStatus(value)}
                 className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                  status === value
-                    ? 'bg-accent text-ink'
-                    : 'border border-white/15 text-white/85 hover:bg-white/10'
+                  status === value ? 'bg-accent text-ink' : 'border border-white/15 text-white/85 hover:bg-white/10'
                 }`}
               >
                 {label}
@@ -131,29 +107,14 @@ export default function Report() {
         </div>
 
         <div>
-          {canUploadImage ? (
-            <>
-              <label htmlFor="photo" className={labelClass}>Foto (opsional)</label>
-              <input
-                id="photo"
-                type="file"
-                accept="image/*"
-                onChange={handlePhoto}
-                className="block w-full text-sm text-muted file:mr-4 file:rounded-lg file:border-0 file:bg-white/10 file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-white/15"
-              />
-            </>
-          ) : (
-            <>
-              <span className={labelClass}>Foto (opsional)</span>
-              <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-muted">
-                <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <rect x="4" y="11" width="16" height="10" rx="2" />
-                  <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
-                </svg>
-                <span>Upload foto dikunci untuk sementara dan akan aktif nanti.</span>
-              </div>
-            </>
-          )}
+          <span className={labelClass}>Foto (opsional)</span>
+          <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.03] px-4 py-3 text-sm text-muted">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
+            </svg>
+            <span>Upload foto dikunci untuk sementara dan akan aktif nanti.</span>
+          </div>
         </div>
 
         {error && (

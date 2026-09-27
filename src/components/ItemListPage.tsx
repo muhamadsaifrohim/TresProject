@@ -11,7 +11,7 @@ type ItemListPageProps = {
 }
 
 export default function ItemListPage({ status, title, description }: ItemListPageProps) {
-  const { items, removeItem } = useItems()
+  const { items, isLoading, error, removeItem, markResolved } = useItems()
   const [query, setQuery] = useState('')
 
   const itemsByStatus = items.filter((item) => item.status === status)
@@ -38,13 +38,19 @@ export default function ItemListPage({ status, title, description }: ItemListPag
           aria-label="Cari barang"
           className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-white placeholder:text-white/40 focus-visible:outline-2 focus-visible:outline-accent sm:max-w-sm"
         />
-        <p className="text-sm text-muted">{visibleItems.length} barang</p>
+        {!isLoading && <p className="text-sm text-muted">{visibleItems.length} barang</p>}
       </div>
 
-      {visibleItems.length > 0 ? (
+      {isLoading ? (
+        <p className="mt-10 text-center text-muted">Memuat data...</p>
+      ) : error ? (
+        <p role="alert" className="mt-10 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
+          {error}
+        </p>
+      ) : visibleItems.length > 0 ? (
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {visibleItems.map((item) => (
-            <ItemCard key={item.id} item={item} onDelete={removeItem} />
+            <ItemCard key={item.id} item={item} onDelete={removeItem} onMarkResolved={markResolved} />
           ))}
         </div>
       ) : (
@@ -52,10 +58,7 @@ export default function ItemListPage({ status, title, description }: ItemListPag
           {itemsByStatus.length === 0 ? (
             <>
               <p className="text-muted">Belum ada laporan di sini.</p>
-              <Link
-                to="/report"
-                className="mt-4 inline-block rounded-xl bg-accent px-6 py-2.5 font-semibold text-ink transition-colors hover:bg-[#d3c078]"
-              >
+              <Link to="/report" className="mt-4 inline-block rounded-xl bg-accent px-6 py-2.5 font-semibold text-ink transition-colors hover:bg-[#d3c078]">
                 Buat laporan
               </Link>
             </>
