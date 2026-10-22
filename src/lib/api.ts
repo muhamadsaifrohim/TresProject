@@ -32,14 +32,32 @@ function getToken(): string | null {
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
 
+  // PERUBAHAN PENTING DI SINI:
+  // Kita harus mengecek apakah data (body) yang dikirim adalah FormData atau bukan.
+  const isFormData = options.body instanceof FormData
+
+  // Siapkan headers dasar
+  const headers: HeadersInit = {
+    Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+
+  // Jika BUKAN FormData (berarti data biasa/JSON), baru kita tambahkan Content-Type: application/json.
+  // Jika FormData, BROWSER yang akan otomatis mengatur Content-Type menjadi 'multipart/form-data' beserta 'boundary'-nya.
+  // JANGAN set Content-Type secara manual jika menggunakan FormData.
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  // Gabungkan headers bawaan dengan custom headers dari options (jika ada)
+  const finalHeaders = {
+    ...headers,
+    ...options.headers,
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+    headers: finalHeaders,
   })
 
   // 204 No Content tidak punya body untuk di-parse
@@ -54,9 +72,21 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  
+  // PERUBAHAN PENTING DI SINI:
+  // Cek apakah 'data' itu FormData. Kalau iya, biarkan aslinya.
+  // Kalau bukan, baru di-JSON.stringify().
   post: <T>(path: string, data?: unknown) =>
-    request<T>(path, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+    request<T>(path, { 
+      method: 'POST', 
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined) 
+    }),
+    
   patch: <T>(path: string, data?: unknown) =>
-    request<T>(path, { method: 'PATCH', body: data ? JSON.stringify(data) : undefined }),
+    request<T>(path, { 
+      method: 'PATCH', 
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined) 
+    }),
+    
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
