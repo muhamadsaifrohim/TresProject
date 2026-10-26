@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { Item, NewItem } from '../Types'
+import type { Item, NewItem, Paginated } from '../Types'
 
 export function useItems() {
   const [items, setItems] = useState<Item[]>([])
@@ -11,8 +11,9 @@ export function useItems() {
     setIsLoading(true)
     setError('')
     try {
-      const data = await api.get<Item[]>('/items')
-      setItems(data)
+      // Respons sekarang berbentuk pagination, data barangnya ada di properti "data"
+      const result = await api.get<Paginated<Item>>('/items?per_page=50')
+      setItems(result.data)
     } catch {
       setError('Gagal memuat data. Coba muat ulang halaman.')
     } finally {
